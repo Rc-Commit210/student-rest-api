@@ -1,21 +1,35 @@
-install:
-	pip install -r requirements.txt
+APP_NAME=student-rest-api
+VERSION=v1.0.2
+CONTAINER_NAME=student-api
+
+build:
+	docker build -t $(APP_NAME):$(VERSION) .
 
 run:
-	python run.py
+	-docker rm -f $(CONTAINER_NAME)
+	docker run -d \
+		--name $(CONTAINER_NAME) \
+		-p 5000:5000 \
+		-e DATABASE_URL=sqlite:///students.db \
+		$(APP_NAME):$(VERSION)
 
-test:
-	python -m pytest -v
+stop:
+	-docker stop $(CONTAINER_NAME)
 
-migrate:
-	flask db upgrade
+remove:
+	-docker rm $(CONTAINER_NAME)
 
-makemigrations:
-	flask db migrate -m "Auto Migration"
+restart: stop run
 
-freeze:
-	pip freeze > requirements.txt
+logs:
+	docker logs -f $(CONTAINER_NAME)
+
+ps:
+	docker ps
+
+images:
+	docker images
 
 clean:
-	rm -rf __pycache__
-	rm -rf .pytest_cache
+	-docker rm -f $(CONTAINER_NAME)
+	-docker rmi $(APP_NAME):$(VERSION)
