@@ -1,9 +1,8 @@
 # Student REST API
 
-A simple Student CRUD REST API built using **Python**, **Flask**, and **SQLite** as part of the **One2N SRE Bootcamp**.
+A Student CRUD REST API built using **Python**, **Flask**, **SQLAlchemy**, and **PostgreSQL**, containerized using **Docker** and orchestrated using **Docker Compose** as part of the **One2N SRE Bootcamp**.
 
-This project follows REST API best practices and demonstrates API versioning, logging, validation, error handling, database migrations, environment variable configuration, and automated testing.
-
+The project demonstrates REST API development, database migrations, containerization, Docker Compose, Gunicorn, Makefile automation, logging, testing, and environment variable configuration.
 ---
 
 ## Features
@@ -19,8 +18,12 @@ This project follows REST API best practices and demonstrates API versioning, lo
 - Input Validation
 - Error Handling
 - Database Migrations using Flask-Migrate
+- PostgreSQL Database
+- Docker Multi-stage Build
+- Docker Compose
+- Gunicorn Production Server
+- Makefile Automation
 - Unit Testing using Pytest
-
 ---
 
 ## Project Structure
@@ -29,127 +32,105 @@ This project follows REST API best practices and demonstrates API versioning, lo
 student-rest-api/
 │
 ├── app/
-│   ├── __init__.py
-│   ├── config.py
-│   ├── database.py
-│   ├── models.py
-│   ├── routes.py
-│   ├── health.py
-│   ├── logger.py
-│   └── error_handlers.py
-│
 ├── migrations/
 ├── tests/
-├── postman/
 ├── instance/
+├── Dockerfile
+├── docker-compose.yml
+├── Makefile
 ├── requirements.txt
-├── .env
-├── .env.example
 ├── run.py
 ├── README.md
-└── Makefile
+├── .env
+└── .env.example
 ```
 
 ---
 
 ## Tech Stack
 
-- Python 3.14
+- Python 3.13
 - Flask
 - Flask-SQLAlchemy
 - Flask-Migrate
-- SQLite
+- PostgreSQL
+- Alembic
+- Gunicorn
+- Docker
+- Docker Compose
+- GNU Make
 - Pytest
-- Postman
 
 ---
 
 ## Prerequisites
 
-- Python 3.14+
+- Docker
+- Docker Compose
+- GNU Make
 - Git
-- Virtual Environment
 
 ---
 
-## Local Setup
 
-Clone the repository
+## Docker Setup
 
-```bash
-git clone <repository-url>
-```
-
-Navigate into the project
+Build the Docker image
 
 ```bash
-cd student-rest-api
+make build
 ```
 
-Create virtual environment
+Start the complete development environment
 
 ```bash
-python -m venv venv
+make up
 ```
 
-Activate virtual environment
+This command automatically:
 
-Windows
+1. Starts PostgreSQL
+2. Waits for PostgreSQL to become ready
+3. Builds the REST API image
+4. Runs database migrations
+5. Starts the API
 
-```powershell
-.\venv\Scripts\Activate.ps1
-```
-
-Linux / macOS
+Check running containers
 
 ```bash
-source venv/bin/activate
+make ps
 ```
 
-Install dependencies
+View logs
 
 ```bash
-pip install -r requirements.txt
+make logs
 ```
 
----
+Stop all services
 
-## Environment Variables
-
-Create a `.env` file.
-
-Example:
-
-```
-DATABASE_URL=sqlite:///students.db
-SECRET_KEY=your-secret-key
+```bash
+make down
 ```
 
----
+Clean containers, images and volumes
 
+```bash
+make clean
+----------
 ## Database Migration
 
-Initialize database
+Database migrations are automatically executed when running:
 
 ```bash
-flask db upgrade
+make up
 ```
 
----
-
-## Run the Application
+To execute manually:
 
 ```bash
-python run.py
+docker compose exec api flask db upgrade
 ```
-
-Server runs on
-
-```
-http://127.0.0.1:5000
-```
-
----
 
 ## API Endpoints
 
@@ -164,15 +145,56 @@ http://127.0.0.1:5000
 
 ---
 
+## Run the Application
+
+```bash
+make up
+```
+
+API
+
+```
+http://localhost:5000
+```
+
+Health Check
+
+```
+http://localhost:5000/healthcheck
+```
 ## Running Tests
 
 Run all tests
 
 ```bash
+## Running Tests
+
+Using local Python:
+
+```bash
 python -m pytest -v
 ```
 
+Or inside Docker:
+
+```bash
+docker compose exec api pytest -v
+
+```
+
 ---
+
+## Environment Variables
+
+The application uses the following environment variables:
+
+```text
+DATABASE_URL=postgresql+psycopg2://student:student123@db:5432/studentdb
+PORT=5000
+DEBUG=False
+SECRET_KEY=your-secret-key
+```
+------------
 
 ## Postman Collection
 
@@ -182,15 +204,29 @@ Import the Postman collection from the `postman/` folder.
 
 ## Future Improvements
 
-- Docker Support
-- CI/CD Pipeline
+- GitHub Actions CI/CD Pipeline
 - Kubernetes Deployment
-- Monitoring with Prometheus & Grafana
+- Prometheus Monitoring
+- Grafana Dashboards
 - Helm Charts
 - ArgoCD Deployment
+- Terraform Infrastructure Automation
+
+## Make Targets
+
+| Command | Description |
+|----------|-------------|
+| `make build` | Build Docker image |
+| `make up` | Start PostgreSQL, run migrations and start API |
+| `make ps` | Show running containers |
+| `make logs` | View application logs |
+| `make down` | Stop all containers |
+| `make clean` | Remove containers, volumes and images |
 
 ---
 
 ## Author
 
-Developed as part of the One2N SRE Bootcamp.
+**Sanket Chikhale**
+
+Developed as part of the One2N SRE Bootcamp to demonstrate REST API development, containerization, database migrations, Docker Compose orchestration, and DevOps automation.
