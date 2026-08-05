@@ -1,35 +1,42 @@
 APP_NAME=student-rest-api
-VERSION=v1.0.2
-CONTAINER_NAME=student-api
+VERSION=v1.0.3
+
+COMPOSE=docker compose
+
+.PHONY: db-start db-wait migrate build api-start up down logs ps clean
+
+db-start:
+	$(COMPOSE) up -d db
+
+db-wait:
+	@echo "Waiting for PostgreSQL..."
+	@until $(COMPOSE) exec -T db pg_isready -U student -d studentdb; do \
+		sleep 2; \
+	done
+	@echo "PostgreSQL is ready."
+
+migrate:
+	$(COMPOSE) run --rm api flask db upgrade
 
 build:
-	docker build -t $(APP_NAME):$(VERSION) .
+	$(COMPOSE) build api
 
-run:
-	-docker rm -f $(CONTAINER_NAME)
-	docker run -d \
-		--name $(CONTAINER_NAME) \
-		-p 5000:5000 \
-		-e DATABASE_URL=sqlite:///students.db \
-		$(APP_NAME):$(VERSION)
+api-start:
+	$(COMPOSE) up -d api
 
-stop:
-	-docker stop $(CONTAINER_NAME)
+up: db-start db-wait build migrate api-start
+	@echo "Student API and PostgreSQL are running."
+	@echo "Healthcheck: http://localhost:5000/healthcheck"
 
-remove:
-	-docker rm $(CONTAINER_NAME)
-
-restart: stop run
+down:
+	$(COMPOSE) down
 
 logs:
-	docker logs -f $(CONTAINER_NAME)
+	$(COMPOSE) logs -f
 
 ps:
-	docker ps
-
-images:
-	docker images
+	$(COMPOSE) ps
 
 clean:
-	-docker rm -f $(CONTAINER_NAME)
+	$(COMPOSE) down --volumes --remove-orphans
 	-docker rmi $(APP_NAME):$(VERSION)

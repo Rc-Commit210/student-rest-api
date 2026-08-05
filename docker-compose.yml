@@ -1,0 +1,34 @@
+
+
+services:
+  db:
+    image: postgres:17
+    container_name: student-db
+    restart: always
+    environment:
+      POSTGRES_DB: studentdb
+      POSTGRES_USER: student
+      POSTGRES_PASSWORD: student123
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: student-rest-api:v1.0.3
+    container_name: student-api
+    restart: always
+    depends_on:
+      - db
+    environment:
+      DATABASE_URL: postgresql+psycopg2://student:student123@db:5432/studentdb
+      PORT: 5000
+      DEBUG: "False"
+    ports:
+      - "5000:5000"
+
+volumes:
+  postgres_data:
