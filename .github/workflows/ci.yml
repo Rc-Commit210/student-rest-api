@@ -1,41 +1,49 @@
 name: Student REST API CI
 
-on:
+"on":
   push:
+    branches:
+      - master
     paths:
       - "app/**"
-      - "tests/**"OB
+      - "tests/**"
       - "Dockerfile"
+      - "docker-compose.yml"
       - "requirements.txt"
       - "Makefile"
-      - ".github/workflows/**"
+      - ".flake8"
+      - ".github/workflows/ci.yml"
 
   workflow_dispatch:
 
 jobs:
   ci:
-    runs-on: [self-hosted, Linux, X64]
+    name: Build, Test, Lint and Push
+    runs-on:
+      - self-hosted
+      - Linux
+      - X64
 
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Build
+      - name: Build API
         run: make build
 
-      - name: Test
+      - name: Run tests
         run: make test
 
-      - name: Lint
+      - name: Perform code linting
         run: make lint
 
-      - name: Docker Login
+      - name: Docker login
         env:
           DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
           DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
         run: make docker-login
 
-      - name: Docker Push
+      - name: Build and push Docker image
         env:
           DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
         run: make docker-push
