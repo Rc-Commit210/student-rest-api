@@ -1,0 +1,41 @@
+name: Student REST API CI
+
+on:
+  push:
+    paths:
+      - "app/**"
+      - "tests/**"
+      - "Dockerfile"
+      - "requirements.txt"
+      - "Makefile"
+      - ".github/workflows/**"
+
+  workflow_dispatch:
+
+jobs:
+  ci:
+    runs-on: self-hosted
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build
+        run: make build
+
+      - name: Test
+        run: make test
+
+      - name: Lint
+        run: make lint
+
+      - name: Docker Login
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+        run: make docker-login
+
+      - name: Docker Push
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+        run: make docker-push

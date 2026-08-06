@@ -1,10 +1,8 @@
-from flask import Blueprint, jsonify
+from flask import Blueprint
 
 home_bp = Blueprint("home", __name__)
 
-@home_bp.route("/", methods=["GET"])
+
+@home_bp.route("/")
 def home():
-    return jsonify({
-        "message": "Welcome to Student REST API",
-        "version": "v1"
-    }), 200
+    return {"message": "Student API"}

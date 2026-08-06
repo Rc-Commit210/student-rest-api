@@ -1,9 +1,25 @@
 APP_NAME=student-rest-api
 VERSION=v1.0.3
-
+DOCKERHUB_USERNAME=rcsanket753
+IMAGE=$(DOCKERHUB_USERNAME)/$(APP_NAME):$(VERSION)
 COMPOSE=docker compose
 
-.PHONY: db-start db-wait migrate build api-start up down logs ps clean
+.PHONY: \
+	db-start \
+	db-wait \
+	migrate \
+	build \
+	api-start \
+	up \
+	down \
+	logs \
+	ps \
+	clean \
+	test \
+	lint \
+	format \
+	docker-login \
+	docker-push
 
 db-start:
 	$(COMPOSE) up -d db
@@ -36,6 +52,24 @@ logs:
 
 ps:
 	$(COMPOSE) ps
+
+test:
+	$(COMPOSE) run --rm api python -m pytest -v
+
+format:
+	$(COMPOSE) run --rm api black app tests run.py
+
+lint:
+	$(COMPOSE) run --rm api flake8 app tests run.py
+
+docker-login:
+	@echo "$$DOCKERHUB_TOKEN" | docker login \
+		-u "$(DOCKERHUB_USERNAME)" \
+		--password-stdin
+
+docker-push:
+	docker tag $(APP_NAME):$(VERSION) $(IMAGE)
+	docker push $(IMAGE)
 
 clean:
 	$(COMPOSE) down --volumes --remove-orphans

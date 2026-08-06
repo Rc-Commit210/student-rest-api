@@ -1,15 +1,16 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, jsonify, request
 from sqlalchemy.exc import IntegrityError
 
 from .database import db
-from .models import Student
 from .logger import setup_logger
+from .models import Student
+
 logger = setup_logger()
 
 student_bp = Blueprint(
     "students",
     __name__,
-    url_prefix="/api/v1/students"
+    url_prefix="/api/v1/students",
 )
 
 
@@ -17,144 +18,224 @@ student_bp = Blueprint(
 @student_bp.route("", methods=["POST"])
 def create_student():
     data = request.get_json(silent=True)
+
     if not data:
         logger.warning("Create student request with empty or invalid JSON")
-        return jsonify({
-            "error": "Request body is required and must be in JSON format"
-        }), 400
+        return (
+            jsonify(
+                {
+                    "error": (
+                        "Request body is required and must be in JSON format"
+                    )
+                }
+            ),
+            400,
+        )
 
     required_fields = ["name", "age", "email"]
 
     missing_fields = [
-        field for field in required_fields
+        field
+        for field in required_fields
         if field not in data
     ]
 
     if missing_fields:
-        logger.warning(
+        message = (
             f"Missing required fields: {', '.join(missing_fields)}"
         )
+        logger.warning(message)
 
-        return jsonify({
-            "error": f"Missing required fields: {', '.join(missing_fields)}"
-        }), 400
+        return jsonify({"error": message}), 400
 
-    logger.info(f"Creating student: {data.get('email')}")
+    logger.info("Creating student: %s", data.get("email"))
 
     student = Student(
         name=data["name"],
         age=data["age"],
-        email=data["email"]
+        email=data["email"],
     )
+
     try:
         db.session.add(student)
         db.session.commit()
 
-        logger.info(f"Student created successfully with ID {student.id}")
+        logger.info(
+            "Student created successfully with ID %s",
+            student.id,
+        )
 
         return jsonify(student.to_dict()), 201
-    except IntegrityError as e:
-        # Rollback the session on integrity errors (e.g., duplicate email)
+
+    except IntegrityError as error:
         db.session.rollback()
+
         logger.warning(
-            f"Duplicate email attempted: {data['email']}. Error: {str(e)}"
+            "Duplicate email attempted: %s. Error: %s",
+            data["email"],
+            error,
         )
-        return jsonify({
-            "error": "Email already exists"
-        }), 409
-    except Exception as e:
-        # Ensure any other errors also rollback and return a 500
+
+        return jsonify({"error": "Email already exists"}), 409
+
+    except Exception as error:
         db.session.rollback()
-        logger.exception(f"Unexpected error creating student: {str(e)}")
+
+        logger.exception(
+            "Unexpected error creating student: %s",
+            error,
+        )
+
         return jsonify({"error": "Internal server error"}), 500
-
-
 
 
 # GET all students
 @student_bp.route("", methods=["GET"])
 def get_students():
     logger.info("Fetching all students")
+
     students = Student.query.all()
 
     return jsonify(
-        [
-            student.to_dict()
-            for student in students
-        ]
+        [student.to_dict() for student in students]
     ), 200
-
 
 
 # GET student by ID
-@student_bp.route("/<int:id>", methods=["GET"])
-def get_student(id):
-    logger.info(f"Fetching student with ID {id}")
+@student_bp.route("/<int:student_id>", methods=["GET"])
+def get_student(student_id):
+    logger.info("Fetching student with ID %s", student_id)
 
-    student = Student.query.get_or_404(id)
+    student = db.session.get(Student, student_id)
 
-    return jsonify(
-        student.to_dict()
-    ), 200
+    if student is None:
+        return jsonify({"error": "Student not found"}), 404
 
+    return jsonify(student.to_dict()), 200
 
 
 # UPDATE student
-@student_bp.route("/<int:id>", methods=["PUT"])
-def update_student(id):
-    logger.info(f"Updating student with ID {id}")
+@student_bp.route("/<int:student_id>", methods=["PUT"])
+def update_student(student_id):
+    logger.info("Updating student with ID %s", student_id)
 
-    student = Student.query.get_or_404(id)
+    student = db.session.get(Student, student_id)
+
+    if student is None:
+        return jsonify({"error": "Student not found"}), 404
 
     data = request.get_json(silent=True)
+
     if data is None:
-        logger.warning(f"Update request for student {id} with empty or invalid JSON")
-        return jsonify({"error": "Request body is required and must be in JSON format"}), 400
+        logger.warning(
+            "Update request for student %s has empty or invalid JSON",
+            student_id,
+        )
+
+        return (
+            jsonify(
+                {
+                    "error": (
+                        "Request body is required and must be in JSON format"
+                    )
+                }
+            ),
+            400,
+        )
 
     allowed_fields = ["name", "age", "email"]
-    if not any(field in data for field in allowed_fields):
-        logger.warning(f"Update request for student {id} contains no updatable fields")
-        return jsonify({"error": "At least one field (name, age, email) must be provided"}), 400
 
-    # Apply updates
+    if not any(field in data for field in allowed_fields):
+        logger.warning(
+            "Update request for student %s has no updatable fields",
+            student_id,
+        )
+
+        return (
+            jsonify(
+                {
+                    "error": (
+                        "At least one field "
+                        "(name, age, email) must be provided"
+                    )
+                }
+            ),
+            400,
+        )
+
     if "name" in data:
         student.name = data["name"]
+
     if "age" in data:
         student.age = data["age"]
+
     if "email" in data:
         student.email = data["email"]
 
     try:
         db.session.commit()
-        logger.info(f"Student {id} updated successfully")
+
+        logger.info(
+            "Student %s updated successfully",
+            student_id,
+        )
+
         return jsonify(student.to_dict()), 200
-    except IntegrityError as e:
+
+    except IntegrityError as error:
         db.session.rollback()
-        logger.warning(f"Duplicate email attempted for student {id}: {data.get('email')}. Error: {str(e)}")
+
+        logger.warning(
+            "Duplicate email attempted for student %s: %s. Error: %s",
+            student_id,
+            data.get("email"),
+            error,
+        )
+
         return jsonify({"error": "Email already exists"}), 409
-    except Exception as e:
+
+    except Exception as error:
         db.session.rollback()
-        logger.exception(f"Unexpected error updating student {id}: {str(e)}")
+
+        logger.exception(
+            "Unexpected error updating student %s: %s",
+            student_id,
+            error,
+        )
+
         return jsonify({"error": "Internal server error"}), 500
 
 
-
 # DELETE student
-@student_bp.route("/<int:id>", methods=["DELETE"])
-def delete_student(id):
+@student_bp.route("/<int:student_id>", methods=["DELETE"])
+def delete_student(student_id):
+    student = db.session.get(Student, student_id)
 
-    student = Student.query.get_or_404(id)
-    logger.info(f"Deleting student with ID {id}")
+    if student is None:
+        return jsonify({"error": "Student not found"}), 404
+
+    logger.info("Deleting student with ID %s", student_id)
 
     try:
         db.session.delete(student)
         db.session.commit()
-        logger.info(f"Student {id} deleted successfully")
 
-        return jsonify({
-            "message": "Student deleted successfully"
-        }), 200
-    except Exception as e:
+        logger.info(
+            "Student %s deleted successfully",
+            student_id,
+        )
+
+        return jsonify(
+            {"message": "Student deleted successfully"}
+        ), 200
+
+    except Exception as error:
         db.session.rollback()
-        logger.exception(f"Unexpected error deleting student {id}: {str(e)}")
+
+        logger.exception(
+            "Unexpected error deleting student %s: %s",
+            student_id,
+            error,
+        )
+
         return jsonify({"error": "Internal server error"}), 500

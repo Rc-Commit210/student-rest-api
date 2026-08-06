@@ -9,37 +9,35 @@ from app.database import db
 
 @pytest.fixture
 def client():
-
     with tempfile.TemporaryDirectory() as temp_dir:
-
         db_path = os.path.join(temp_dir, "test.db")
 
-        app = create_app({
-            "TESTING": True,
-            "SQLALCHEMY_DATABASE_URI": f"sqlite:///{db_path}"
-        })
+        app = create_app(
+            {
+                "TESTING": True,
+                "SQLALCHEMY_DATABASE_URI": f"sqlite:///{db_path}",
+            }
+        )
 
         with app.app_context():
             db.create_all()
 
-            with app.test_client() as client:
-                yield client
+            with app.test_client() as test_client:
+                yield test_client
 
             db.session.remove()
             db.drop_all()
             db.engine.dispose()
 
 
-
 def test_create_student(client):
-
     response = client.post(
         "/api/v1/students",
         json={
             "name": "Rahul",
             "age": 24,
-            "email": "rahul_test@example.com"
-        }
+            "email": "rahul_test@example.com",
+        },
     )
 
     assert response.status_code == 201
@@ -52,28 +50,24 @@ def test_create_student(client):
 
 
 def test_get_students(client):
-
-    # Create first student
     client.post(
         "/api/v1/students",
         json={
             "name": "Rahul",
             "age": 24,
-            "email": "rahul1@example.com"
-        }
+            "email": "rahul1@example.com",
+        },
     )
 
-    # Create second student
     client.post(
         "/api/v1/students",
         json={
             "name": "Amit",
             "age": 25,
-            "email": "amit1@example.com"
-        }
+            "email": "amit1@example.com",
+        },
     )
 
-    # Fetch all students
     response = client.get("/api/v1/students")
 
     assert response.status_code == 200
@@ -82,31 +76,24 @@ def test_get_students(client):
 
     assert isinstance(data, list)
     assert len(data) == 2
-
     assert data[0]["name"] == "Rahul"
     assert data[1]["name"] == "Amit"
 
 
 def test_get_student_by_id(client):
-
-    # Create a student
     create_response = client.post(
         "/api/v1/students",
         json={
             "name": "Sanket",
             "age": 25,
-            "email": "sanket_test@example.com"
-        }
+            "email": "sanket_test@example.com",
+        },
     )
 
     student = create_response.get_json()
-
     student_id = student["id"]
 
-    # Fetch student by ID
-    response = client.get(
-        f"/api/v1/students/{student_id}"
-    )
+    response = client.get(f"/api/v1/students/{student_id}")
 
     assert response.status_code == 200
 
@@ -117,28 +104,26 @@ def test_get_student_by_id(client):
     assert data["age"] == 25
     assert data["email"] == "sanket_test@example.com"
 
-def test_update_student(client):
 
-    # Create a student
+def test_update_student(client):
     create_response = client.post(
         "/api/v1/students",
         json={
             "name": "Rahul",
             "age": 24,
-            "email": "rahul_update@example.com"
-        }
+            "email": "rahul_update@example.com",
+        },
     )
 
     student = create_response.get_json()
     student_id = student["id"]
 
-    # Update the student
     response = client.put(
         f"/api/v1/students/{student_id}",
         json={
             "name": "Rahul Sharma",
-            "age": 25
-        }
+            "age": 25,
+        },
     )
 
     assert response.status_code == 200
@@ -149,25 +134,22 @@ def test_update_student(client):
     assert data["name"] == "Rahul Sharma"
     assert data["age"] == 25
     assert data["email"] == "rahul_update@example.com"
-def test_delete_student(client):
 
-    # Create student
+
+def test_delete_student(client):
     create_response = client.post(
         "/api/v1/students",
         json={
             "name": "Delete Me",
             "age": 30,
-            "email": "delete@example.com"
-        }
+            "email": "delete@example.com",
+        },
     )
 
     student = create_response.get_json()
     student_id = student["id"]
 
-    # Delete student
-    response = client.delete(
-        f"/api/v1/students/{student_id}"
-    )
+    response = client.delete(f"/api/v1/students/{student_id}")
 
     assert response.status_code == 200
 
@@ -175,9 +157,6 @@ def test_delete_student(client):
 
     assert data["message"] == "Student deleted successfully"
 
-    # Verify student is deleted
-    response = client.get(
-        f"/api/v1/students/{student_id}"
-    )
+    response = client.get(f"/api/v1/students/{student_id}")
 
     assert response.status_code == 404
