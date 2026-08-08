@@ -225,6 +225,86 @@ Import the Postman collection from the `postman/` folder.
 
 ---
 
+
+# Milestone 7 – Deploy REST API on Kubernetes
+
+## Objective
+
+Deploy the Student REST API and PostgreSQL on a Kubernetes cluster using Minikube while following production-style deployment practices.
+
+## Components
+
+- Namespace
+- ConfigMap
+- Deployment
+- Service
+- PostgreSQL
+- Init Container
+- HashiCorp Vault
+- External Secrets Operator
+- SecretStore
+- ExternalSecret
+
+## Kubernetes Architecture
+
+```text
+API Pods (2)
+      │
+      ▼
+NodePort Service
+      │
+      ▼
+PostgreSQL Service
+      │
+      ▼
+PostgreSQL Pod
+
+Vault
+   │
+External Secrets Operator
+   │
+Kubernetes Secret
+```
+
+## Resources Created
+
+| Resource | Purpose |
+|----------|---------|
+| Namespace | Isolate project resources |
+| ConfigMap | Store non-sensitive configuration |
+| Deployment | Manage API Pods |
+| Service | Expose API |
+| PostgreSQL Deployment | Database |
+| ClusterIP Service | Internal DB access |
+| Vault | Store secrets |
+| SecretStore | Connect ESO to Vault |
+| ExternalSecret | Sync secrets |
+| Kubernetes Secret | Used by API and DB |
+
+## Verification Commands
+
+```bash
+kubectl get deployments -n student-api
+
+kubectl get pods -n student-api
+
+kubectl get svc -n student-api
+
+kubectl get secretstore -n student-api
+
+kubectl get externalsecret -n student-api
+```
+
+## Outcome
+
+- API deployed with 2 replicas
+- PostgreSQL deployed
+- Database migrations executed using Init Container
+- Secrets stored in Vault
+- Secrets synchronized using External Secrets Operator
+- API and Database consume Kubernetes Secrets
+
+
 ## Author
 
 **Sanket Chikhale**

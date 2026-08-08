@@ -1,0 +1,116 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: student-api
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: student-api-config
+  namespace: student-api
+
+data:
+  DB_HOST: postgres-service
+  DB_PORT: "5432"
+  DB_NAME: studentdb
+  APP_ENV: production
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: student-api
+  namespace: student-api
+
+spec:
+  replicas: 2
+
+  selector:
+    matchLabels:
+      app: student-api
+
+  template:
+    metadata:
+      labels:
+        app: student-api
+
+    spec:
+      nodeSelector:
+        type: application
+
+      initContainers:
+        - name: db-migration
+          image: rcsanket753/student-rest-api:v1.0.3
+
+          command:
+            - sh
+            - -c
+            - |
+              export DATABASE_URL="postgresql+psycopg2://${DB_USERNAME}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}"
+
+              echo "Waiting for PostgreSQL..."
+
+              until python -c "
+              import psycopg2
+              psycopg2.connect(
+                  host='${DB_HOST}',
+                  port=${DB_PORT},
+                  dbname='${DB_NAME}',
+                  user='${DB_USERNAME}',
+                  password='${DB_PASSWORD}'
+              )
+              "; do
+                echo "PostgreSQL is not ready yet..."
+                sleep 2
+              done
+
+              echo "PostgreSQL is ready."
+              flask db upgrade
+
+          envFrom:
+            - configMapRef:
+                name: student-api-config
+
+            - secretRef:
+                name: student-api-db-secret
+
+      containers:
+        - name: student-api
+          image: rcsanket753/student-rest-api:v1.0.3
+          imagePullPolicy: IfNotPresent
+
+          command:
+            - sh
+            - -c
+            - |
+              export DATABASE_URL="postgresql+psycopg2://${DB_USERNAME}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}"
+              exec gunicorn --bind 0.0.0.0:5000 run:app
+
+          ports:
+            - containerPort: 5000
+
+          envFrom:
+            - configMapRef:
+                name: student-api-config
+
+            - secretRef:
+                name: student-api-db-secret
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: student-api-service
+  namespace: student-api
+
+spec:
+  selector:
+    app: student-api
+
+  ports:
+    - port: 8080
+      targetPort: 5000
+      protocol: TCP
+
+  type: NodePort
