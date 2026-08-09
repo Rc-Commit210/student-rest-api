@@ -189,7 +189,7 @@ docker compose exec api pytest -v
 The application uses the following environment variables:
 
 ```text
-DATABASE_URL=postgresql+psycopg2://student:student123@db:5432/studentdb
+DATABASE_URL=postgresql+psycopg2://<db-user>:<db-password>@db:5432/studentdb
 PORT=5000
 DEBUG=False
 SECRET_KEY=your-secret-key
@@ -304,7 +304,47 @@ kubectl get externalsecret -n student-api
 - Secrets synchronized using External Secrets Operator
 - API and Database consume Kubernetes Secrets
 
+### Install HashiCorp Vault
 
+```bash
+helm repo add hashicorp https://helm.releases.hashicorp.com
+helm repo update
+
+kubectl create namespace vault
+
+helm install vault hashicorp/vault \
+  --namespace vault \
+  --set "server.dev.enabled=true"
+```
+
+> Vault dev mode is used only for this bootcamp environment and should not be used in production.
+
+### Install External Secrets Operator
+
+```bash
+helm repo add external-secrets https://charts.external-secrets.io
+helm repo update
+
+kubectl create namespace external-secrets
+
+helm install external-secrets \
+  external-secrets/external-secrets \
+  --namespace external-secrets
+```
+
+### Secret Flow
+
+```text
+HashiCorp Vault
+      ↓
+SecretStore
+      ↓
+ExternalSecret
+      ↓
+Kubernetes Secret
+      ↓
+API + PostgreSQL
+```
 ## Author
 
 **Sanket Chikhale**
