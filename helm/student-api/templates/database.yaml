@@ -1,0 +1,63 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres
+  labels:
+    app: postgres
+
+spec:
+  replicas: {{ .Values.database.replicaCount }}
+
+  selector:
+    matchLabels:
+      app: postgres
+
+  template:
+    metadata:
+      labels:
+        app: postgres
+
+    spec:
+      nodeSelector:
+        type: {{ .Values.database.nodeSelector.type }}
+
+      containers:
+        - name: postgres
+          image: "{{ .Values.database.image.repository }}:{{ .Values.database.image.tag }}"
+          imagePullPolicy: {{ .Values.database.image.pullPolicy }}
+
+          ports:
+            - containerPort: {{ .Values.database.service.targetPort }}
+
+          env:
+            - name: POSTGRES_DB
+              value: {{ .Values.config.dbName | quote }}
+
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.database.secret.name }}
+                  key: DB_USERNAME
+
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.database.secret.name }}
+                  key: DB_PASSWORD
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.database.service.name }}
+
+spec:
+  selector:
+    app: postgres
+
+  ports:
+    - port: {{ .Values.database.service.port }}
+      targetPort: {{ .Values.database.service.targetPort }}
+      protocol: TCP
+
+  type: ClusterIP

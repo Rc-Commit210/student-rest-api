@@ -344,7 +344,176 @@ ExternalSecret
 Kubernetes Secret
       ↓
 API + PostgreSQL
+
+
+# Milestone 8 - Deploy Using Helm Charts
+
+## Objective
+
+Convert the Kubernetes manifests from Milestone 7 into reusable Helm charts and deploy the Student REST API stack using Helm.
+
+## Why Helm?
+
+Raw Kubernetes manifests work well, but configuration becomes difficult to maintain across multiple environments.
+
+Helm provides:
+
+- Reusable Kubernetes templates
+- Centralized configuration using `values.yaml`
+- Application release management
+- Upgrades and rollbacks
+- Chart versioning
+- Repeatable deployments
+
+## Helm Chart Structure
+
+```text
+helm/
+└── student-api/
+    ├── Chart.yaml
+    ├── values.yaml
+    └── templates/
+        ├── configmap.yaml
+        ├── deployment.yaml
+        ├── service.yaml
+        ├── database.yaml
+        └── external-secret.yaml
 ```
+
+## Architecture
+
+```text
+                     Helm Release
+                          |
+          +---------------+---------------+
+          |               |               |
+          v               v               v
+      ConfigMap      API Deployment    PostgreSQL
+                       2 Pods             Pod
+                         |                 |
+                         v                 v
+                  NodePort Service   ClusterIP Service
+
+Vault
+  |
+  v
+SecretStore
+  |
+  v
+ExternalSecret
+  |
+  v
+Kubernetes Secret
+  |
+  +------> API
+  |
+  +------> PostgreSQL
+```
+
+## Validate the Helm Chart
+
+```bash
+helm lint ./helm/student-api
+```
+
+Render Kubernetes manifests without installing:
+
+```bash
+helm template student-api ./helm/student-api
+```
+
+## Install the Application
+
+```bash
+helm install student-api ./helm/student-api \
+  -n student-api
+```
+
+## Upgrade or Install
+
+```bash
+helm upgrade --install student-api ./helm/student-api \
+  -n student-api
+```
+
+This command installs the release if it does not exist and upgrades it if it already exists.
+
+## Check Helm Releases
+
+```bash
+helm list -n student-api
+```
+
+## Check Release History
+
+```bash
+helm history student-api -n student-api
+```
+
+## Verify Kubernetes Resources
+
+```bash
+kubectl get pods -n student-api -o wide
+kubectl get svc -n student-api
+kubectl get externalsecret -n student-api
+kubectl get secretstore -n student-api
+```
+
+## Verify API
+
+```bash
+curl http://$(minikube ip):<NODE_PORT>/healthcheck
+```
+
+Expected result:
+
+```json
+{
+  "message": "Student API is running",
+  "status": "UP"
+}
+```
+
+## Helm Release Management
+
+Upgrade:
+
+```bash
+helm upgrade student-api ./helm/student-api \
+  -n student-api
+```
+
+View history:
+
+```bash
+helm history student-api -n student-api
+```
+
+Rollback:
+
+```bash
+helm rollback student-api <REVISION> \
+  -n student-api
+```
+
+Uninstall:
+
+```bash
+helm uninstall student-api \
+  -n student-api
+```
+
+## Outcome
+
+- Converted raw Kubernetes manifests into reusable Helm templates.
+- Centralized application configuration in `values.yaml`.
+- Deployed two API replicas through Helm.
+- Deployed PostgreSQL through Helm.
+- Maintained application and database node placement.
+- Integrated Vault with External Secrets Operator.
+- Removed hardcoded database credentials from deployment configuration.
+- Validated the chart using `helm lint` and `helm template`.
+- Managed the application as a versioned Helm release.```
 ## Author
 
 **Sanket Chikhale**
