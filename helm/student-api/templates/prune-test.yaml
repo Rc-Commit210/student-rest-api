@@ -1,7 +1,0 @@
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: argocd-prune-test
-  namespace: {{ .Release.Namespace }}
-data:
-  purpose: "ArgoCD prune verification"
