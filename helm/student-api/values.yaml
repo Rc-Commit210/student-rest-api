@@ -2,7 +2,7 @@ replicaCount: 2
 
 image:
   repository: rcsanket753/student-rest-api
-  tag: v1.0.3
+  tag: a901309
   pullPolicy: IfNotPresent
 
 service:
