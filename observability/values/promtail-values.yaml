@@ -1,0 +1,15 @@
+config:
+  clients:
+    - url: http://loki-gateway.observability.svc.cluster.local/loki/api/v1/push
+
+  snippets:
+    extraRelabelConfigs:
+      - action: keep
+        source_labels:
+          - __meta_kubernetes_namespace
+        regex: student-api
+
+      - action: keep
+        source_labels:
+          - __meta_kubernetes_pod_label_app
+        regex: student-api

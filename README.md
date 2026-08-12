@@ -514,6 +514,246 @@ helm uninstall student-api \
 - Removed hardcoded database credentials from deployment configuration.
 - Validated the chart using `helm lint` and `helm template`.
 - Managed the application as a versioned Helm release.```
+
+# Milestone 9 - One-Click Deployments with Argo CD
+
+## Objective
+
+Implement GitOps-based continuous deployment using Argo CD so that Kubernetes deployments are automatically synchronized from the Helm chart stored in Git.
+
+## Why Argo CD?
+
+GitHub Actions handles CI:
+
+- Build application
+- Run tests
+- Run linting
+- Build Docker image
+- Push image to Docker Hub
+- Update Helm `values.yaml`
+
+Argo CD handles CD / GitOps:
+
+- Watches Git for changes
+- Uses Helm charts as the source of truth
+- Compares desired state with the live Kubernetes cluster
+- Automatically synchronizes changes
+- Detects and repairs configuration drift
+- Prunes resources removed from Git
+
+## GitOps Architecture
+
+```text
+Developer
+    |
+    | git push
+    v
+GitHub Repository
+    |
+    v
+GitHub Actions
+    |
+    +--> Build
+    +--> Test
+    +--> Lint
+    +--> Docker Build
+    +--> Docker Push
+    +--> Update Helm image tag
+    +--> Commit values.yaml
+              |
+              v
+         Git Repository
+              |
+              v
+           Argo CD
+              |
+          Auto Sync
+              |
+              v
+          Helm Chart
+              |
+              v
+        Kubernetes Cluster
+```
+
+## Argo CD Deployment
+
+Argo CD components are deployed in the `argocd` namespace and scheduled on the node labeled:
+
+```text
+type=dependent_services
+```
+
+Verify:
+
+```bash
+kubectl get pods -n argocd -o wide
+```
+
+## Argo CD Application
+
+The Student API is configured declaratively using:
+
+```text
+argocd/apps/student-api.yaml
+```
+
+Argo CD uses:
+
+```text
+Repository: https://github.com/Rc-Commit210/student-rest-api.git
+Branch: master
+Helm Path: helm/student-api
+Namespace: student-api
+```
+
+## Automated Sync
+
+The Argo CD Application uses:
+
+```yaml
+syncPolicy:
+  automated:
+    prune: true
+    selfHeal: true
+```
+
+### Self-Healing
+
+If the live Kubernetes configuration is manually changed and no longer matches Git, Argo CD automatically restores the Git-defined state.
+
+Example test:
+
+```bash
+kubectl scale deployment student-api \
+  -n student-api \
+  --replicas=3
+```
+
+Since Git defines two replicas, Argo CD automatically restores:
+
+```text
+replicas = 2
+```
+
+### Pruning
+
+If a Git-managed resource is removed from the Helm chart, Argo CD automatically removes that resource from Kubernetes.
+
+This confirms that Git is the source of truth for the application deployment.
+
+## GitHub Actions GitOps Flow
+
+The CI workflow creates a Docker image tag using the Git commit SHA.
+
+Example:
+
+```text
+a901309
+```
+
+Docker image:
+
+```text
+rcsanket753/student-rest-api:a901309
+```
+
+GitHub Actions then updates:
+
+```yaml
+image:
+  repository: rcsanket753/student-rest-api
+  tag: a901309
+```
+
+inside:
+
+```text
+helm/student-api/values.yaml
+```
+
+The workflow commits this change back to Git.
+
+Argo CD detects the new Git revision and automatically deploys the new image.
+
+## Verify Argo CD Application
+
+```bash
+kubectl get application student-api -n argocd
+```
+
+Expected:
+
+```text
+SYNC STATUS    Synced
+HEALTH STATUS  Healthy
+```
+
+Check the Git revision synchronized by Argo CD:
+
+```bash
+kubectl get application student-api \
+  -n argocd \
+  -o jsonpath='{.status.sync.revision}{"\n"}'
+```
+
+## Verify Running Image
+
+```bash
+kubectl get deployment student-api \
+  -n student-api \
+  -o jsonpath='{.spec.template.spec.containers[0].image}{"\n"}'
+```
+
+Example:
+
+```text
+rcsanket753/student-rest-api:a901309
+```
+
+## Useful Argo CD Commands
+
+Check applications:
+
+```bash
+kubectl get applications -n argocd
+```
+
+Describe application:
+
+```bash
+kubectl describe application student-api -n argocd
+```
+
+Force refresh:
+
+```bash
+kubectl annotate application student-api \
+  -n argocd \
+  argocd.argoproj.io/refresh=hard \
+  --overwrite
+```
+
+Check Argo CD Pods:
+
+```bash
+kubectl get pods -n argocd -o wide
+```
+
+## Outcome
+
+- Argo CD deployed successfully in Kubernetes
+- Argo CD scheduled on the `dependent_services` node
+- Helm chart used as the deployment source of truth
+- Argo CD Application created declaratively
+- Automatic synchronization enabled
+- Self-healing verified
+- Pruning verified
+- GitHub Actions updates Helm image tags automatically
+- Docker images use Git commit SHA tags
+- Argo CD automatically deploys new application versions
+- Full CI + GitOps deployment workflow completed
+
 ## Author
 
 **Sanket Chikhale**

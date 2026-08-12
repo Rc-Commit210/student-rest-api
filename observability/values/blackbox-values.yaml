@@ -1,0 +1,45 @@
+config:
+  modules:
+    http_2xx:
+      prober: http
+      timeout: 5s
+      http:
+        preferred_ip_protocol: ip4
+        follow_redirects: true
+
+    https_insecure_2xx:
+      prober: http
+      timeout: 5s
+      http:
+        preferred_ip_protocol: ip4
+        tls_config:
+          insecure_skip_verify: true
+
+nodeSelector:
+  type: dependent_services
+
+serviceMonitor:
+  selfMonitor:
+    enabled: true
+    labels:
+      release: monitoring
+
+  enabled: true
+
+  defaults:
+    labels:
+      release: monitoring
+    interval: 30s
+    scrapeTimeout: 10s
+    module: http_2xx
+
+  targets:
+    - name: student-api
+      url: http://student-api-service.student-api.svc.cluster.local:8080/healthcheck
+
+    - name: vault
+      url: http://vault.vault.svc.cluster.local:8200/v1/sys/health
+
+    - name: argocd
+      url: https://argocd-server.argocd.svc.cluster.local
+      module: https_insecure_2xx

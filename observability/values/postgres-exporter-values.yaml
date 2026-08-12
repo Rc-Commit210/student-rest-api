@@ -1,0 +1,22 @@
+config:
+  datasource:
+    host: postgres-service.student-api.svc.cluster.local
+    port: "5432"
+    database: studentdb
+    sslmode: disable
+
+    userSecret:
+      name: postgres-exporter-db-secret
+      key: DB_USERNAME
+
+    passwordSecret:
+      name: postgres-exporter-db-secret
+      key: DB_PASSWORD
+
+nodeSelector:
+  type: database
+
+serviceMonitor:
+  enabled: true
+  labels:
+    release: monitoring

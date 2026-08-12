@@ -1,0 +1,76 @@
+singleBinary:
+  replicas: 1
+
+  nodeSelector:
+    type: dependent_services
+
+  persistence:
+    enabled: false
+
+  extraVolumes:
+    - name: loki-storage
+      emptyDir: {}
+
+  extraVolumeMounts:
+    - name: loki-storage
+      mountPath: /var/loki
+      readOnly: false
+
+
+deploymentMode: SingleBinary
+
+loki:
+  auth_enabled: false
+  useTestSchema: true
+
+  commonConfig:
+    replication_factor: 1
+
+  storage:
+    type: filesystem
+
+  containerSecurityContext:
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+        - ALL
+    readOnlyRootFilesystem: false
+
+singleBinary:
+  replicas: 1
+
+  nodeSelector:
+    type: dependent_services
+
+  persistence:
+    enabled: false
+
+  extraVolumes:
+    - name: loki-storage
+      emptyDir: {}
+
+  extraVolumeMounts:
+    - name: loki-storage
+      mountPath: /var/loki
+      readOnly: false
+
+read:
+  replicas: 0
+
+write:
+  replicas: 0
+
+backend:
+  replicas: 0
+
+chunksCache:
+  enabled: false
+
+resultsCache:
+  enabled: false
+
+gateway:
+  enabled: true
+
+lokiCanary:
+  enabled: true

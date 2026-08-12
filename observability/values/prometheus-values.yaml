@@ -1,0 +1,53 @@
+grafana:
+  enabled: true
+
+  nodeSelector:
+    type: dependent_services
+
+  service:
+    type: NodePort
+
+  persistence:
+    enabled: false
+
+prometheus:
+  prometheusSpec:
+    nodeSelector:
+      type: dependent_services
+
+    retention: 2d
+
+    resources:
+      requests:
+        memory: 300Mi
+        cpu: 100m
+      limits:
+        memory: 700Mi
+        cpu: 500m
+
+alertmanager:
+  enabled: false
+
+kubeStateMetrics:
+  enabled: true
+
+nodeExporter:
+  enabled: true
+grafana:
+  enabled: true
+
+  nodeSelector:
+    type: dependent_services
+
+  service:
+    type: NodePort
+
+  persistence:
+    enabled: false
+
+  additionalDataSources:
+    - name: Loki
+      type: loki
+      access: proxy
+      url: http://loki-gateway.observability.svc.cluster.local
+      isDefault: false
