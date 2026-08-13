@@ -1,11 +1,11 @@
 from flask import Flask
 from flask_migrate import Migrate
-
 from .config import Config
 from .database import db
 from .health import health_bp
 from .routes import student_bp
 from .error_handlers import register_error_handlers
+from app.metrics import register_metrics
 
 migrate = Migrate()
 
@@ -27,5 +27,6 @@ def create_app(test_config=None):
     app.register_blueprint(student_bp)
 
     register_error_handlers(app)
+    register_metrics(app)
 
     return app
