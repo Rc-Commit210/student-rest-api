@@ -13,10 +13,11 @@ instance/*.db
 *.db
 
 # Environment variables
-.env
 
 # VS Code
 .vscode/
 
 # macOS
 .DS_Store
+.env
+.env

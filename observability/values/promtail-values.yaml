@@ -1,3 +1,6 @@
+nodeSelector:
+  type: application
+
 config:
   clients:
     - url: http://loki-gateway.observability.svc.cluster.local/loki/api/v1/push
